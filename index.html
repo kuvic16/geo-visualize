@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8">
+    <title>geofence-visualize</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="./gmap.js"></script>
+    <style>
+        body{
+            padding: 10px;
+        }        
+
+        .geo-tytpes{
+            margin-top: 10px;
+        }
+
+        .btn-check:focus+.btn-outline-primary, .btn-outline-primary:focus {
+            box-shadow: none;
+        }
+
+        .map-section{
+            display: flex;
+        }
+
+        .info-table{
+            font-size: 10px;
+        }
+
+        .geo-tytpes{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .route-draw-section{
+            display: flex;
+            align-items: center;
+        }
+
+        .mr-10{
+            margin-right: 10px;
+        }
+
+        .speed-input-box{
+            width: 100px;
+        }
+    </style>
+</head>
+
+<body>
+    <form name="uploadFileForm" class="uploadFileForm">
+        Geo-trigger CSV File: <input name="uplaodFile" id="upload-file" type="file">
+    </form>
+    
+    <div class="geo-tytpes">
+        <div class="btn-group" role="group" aria-label="Basic checkbox toggle button group">
+            <input type="checkbox" class="btn-check" id="demogra" autocomplete="off" onclick="showSelectedKind('demogra')">
+            <label class="btn btn-outline-primary" for="demogra">Demogra</label>
+          
+            <input type="checkbox" class="btn-check" id="outro" autocomplete="off" onclick="showSelectedKind('outro')">
+            <label class="btn btn-outline-primary" for="outro">Outro</label>
+          
+            <input type="checkbox" class="btn-check" id="pre_outro" autocomplete="off" onclick="showSelectedKind('Pre_outro')">
+            <label class="btn btn-outline-primary" for="pre_outro">Pre_outro</label>
+
+            <input type="checkbox" class="btn-check" id="around" autocomplete="off" onclick="showSelectedKind('around')">
+            <label class="btn btn-outline-primary" for="around">Around</label>
+
+            <input type="checkbox" class="btn-check" id="detour" autocomplete="off" onclick="showSelectedKind('detour')">
+            <label class="btn btn-outline-primary" for="detour">Detour</label>
+
+            <input type="checkbox" class="btn-check" id="gourmet" autocomplete="off" onclick="showSelectedKind('gourmet')">
+            <label class="btn btn-outline-primary" for="gourmet">Gourmet</label>
+
+            <input type="checkbox" class="btn-check" id="spot" autocomplete="off" onclick="showSelectedKind('spot')">
+            <label class="btn btn-outline-primary" for="spot">Spot</label>
+
+            <input type="checkbox" class="btn-check" id="guide" autocomplete="off" onclick="showSelectedKind('guide')">
+            <label class="btn btn-outline-primary" for="guide">Guide</label>
+
+            <input type="checkbox" class="btn-check" id="souvenir" autocomplete="off" onclick="showSelectedKind('souvenir')">
+            <label class="btn btn-outline-primary" for="souvenir">Souvenir</label>
+
+            <input type="checkbox" class="btn-check" id="quiz" autocomplete="off" onclick="showSelectedKind('quiz')">
+            <label class="btn btn-outline-primary" for="quiz">Quiz</label>
+
+            <input type="checkbox" class="btn-check" id="pre-outro" autocomplete="off" onclick="showSelectedKind('pre-outro')">
+            <label class="btn btn-outline-primary" for="pre-outro">Pre-outro</label>
+
+        </div>
+        <div class="route-draw-section">
+            <div class="form-check form-switch mr-10">
+                <input class="form-check-input" type="checkbox" id="drawRoute" onclick="toggleRouteDraw()">
+                <label class="form-check-label" for="drawRoute">Draw Route</label>
+            </div>
+            <button id="deleteAll" onclick="deleteAll()" type="button" class="btn btn-danger btn-sm mr-10" disabled>
+                <i class="fa fa-trash"></i>
+            </button>
+            <button title="Undo Last Marker" id="undo" onclick="deleteLast()" type="button" class="btn btn-secondary btn-sm mr-10" disabled>
+                <i class="fa fa-rotate-left"></i>
+            </button>
+            <input class="form-control form-control-sm speed-input-box" type="text" placeholder="Speed as KMH">
+            <button id="download" type="button" class="btn btn-success btn-sm" disabled>
+                <i class="fa fa-download"></i>
+            </button>
+        </div>
+        <!-- <button class="guiz" onclick="showSelectedKind('demogra')">Demogra</button>
+        <button class="guiz" onclick="showSelectedKind('outro')">Outro</button>
+        <button class="guiz" onclick="showSelectedKind('pre_outro')">Pre_outro</button> -->
+        <!-- <button class="guiz" onclick="showSelectedKind('around')">Around</button>
+        <button class="guiz" onclick="showSelectedKind('detour')">Detour</button>
+        <button class="guiz" onclick="showSelectedKind('gourmet')">Gourmet</button>
+        <button class="guiz" onclick="showSelectedKind('spot')">Spot</button> -->
+        <!-- <button class="guiz" onclick="showSelectedKind('guide')">Guide</button>
+        <button class="guiz" onclick="showSelectedKind('souvenir')">Souvenir</button>
+        <button class="guiz" onclick="showSelectedKind('quiz')">Quiz</button>
+        <button class="guiz" onclick="showSelectedKind('pre-outro')">Pre-outro</button> -->
+        
+    </div>
+    <div class="map-section">
+        <div id="map" style="width:1200px; height:700px"></div>
+        <div class="info-section">
+            <table class="table table-sm info-table">
+                <tbody>
+                    <tr><th>id</th></tr>
+                    <tr><td id="id"></td></tr>
+
+                    <tr><th>areaId</th></tr>
+                    <tr><td id="areaId"></td></tr>
+
+                    <tr><th>kind</th></tr>
+                    <tr><td id="kind"></td></tr>
+
+                    <tr><th>latitude</th></tr>
+                    <tr><td id="latitude"></td></tr>
+
+                    <tr><th>longitude</th></tr>
+                    <tr><td id="longitude"></td></tr>
+
+                    <tr><th>radius</th></tr>
+                    <tr><td id="radius"></td></tr>
+
+                    <tr><th>infnum</th></tr>
+                    <tr><td id="infnum"></td></tr>
+
+                    <tr><th>outfnum</th></tr>
+                    <tr><td id="outfnum"></td></tr>
+
+                    <tr><th>ntmg</th></tr>
+                    <tr><td id="ntmg"></td></tr>
+
+                    <tr><th>storeId</th></tr>
+                    <tr><td id="storeId"></td></tr>
+
+                    <tr><th>poiId</th></tr>
+                    <tr><td id="poiId"></td></tr>
+                    
+                </tbody>    
+            </table>
+        </div>
+    </div>
+    
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDRKPCmNzCb7Vz7PbA5Jtukyd_YKbdudXA&callback=initMap">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+</body>
+
+</html>
