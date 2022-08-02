@@ -246,6 +246,7 @@ function toggleRouteButtons(enable){
     document.getElementById("deleteAll").disabled = enable;
     document.getElementById("undo").disabled = enable;
     document.getElementById("download").disabled = enable;
+    document.getElementById("makeManualMarker").disabled = enable;
 }
 
 function generateGPX(){
@@ -287,10 +288,20 @@ function prepareGpxContent(xml, fileName){
     ;
     const url = 'data:text/json;charset=utf-8,' + xml;
     const link = document.createElement('a');
-    link.download = fileName-+999999 + `.gpx`;
+    link.download = fileName + `.gpx`;
     link.href = url;
     document.body.appendChild(link);
     link.click();    
+}
+
+function createManualMarker(){
+    var latlon =  document.getElementById("latlon").value;
+    if(latlon) {
+        var ll = latlon.split(",");
+        if(ll.length == 2) {
+            addMarker(new google.maps.LatLng(ll[0], ll[1]));
+        }
+    }
 }
 
 
