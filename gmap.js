@@ -6,6 +6,9 @@ var selectedKinds = [];
 var firstTime = true;
 var infoWindow = null;
 var isRouteDrawEnable = false;
+var waypoints = [];
+//var directionsDisplay = null;
+//var directionsService = null;
 
 function initMap() {
     const input = document.getElementById('upload-file');
@@ -29,6 +32,8 @@ function initMap() {
 function processData() {
     const csvArray = csvData;            
     map = new google.maps.Map(document.getElementById("map"), opts);
+    // directionsDisplay = new google.maps.DirectionsRenderer({'draggable': false});
+    // directionsService = new google.maps.DirectionsService();
     csv2json(csvArray).then(result => {
         visualizeContents(map, result);
     });
@@ -214,8 +219,10 @@ function addMarker(location) {
     });
     markers.push(marker);
     
-    var path = poly.getPath();
-    path.push(location);
+    //var path = poly.getPath();
+    //path.push(location);
+
+    displayRoute();    
 }
 
 function deleteAll(){
@@ -230,11 +237,13 @@ function deleteLast(){
 }
 
 function deleteMarker(index){
+    removeRoute(markers[index]);
+
     markers[index].setMap(null);	
 	markers.pop();
 	
-	var path = poly.getPath();
-    path.pop();    
+	// var path = poly.getPath();
+    // path.pop();
 }
 
 function toggleRouteDraw(){
@@ -253,10 +262,19 @@ function generateGPX(){
     var fileName =  document.getElementById("fileName").value;    
     var elevator = new google.maps.ElevationService();
 
+    // var locations = [];
+    // for(i=0; i<markers.length; i++) {
+    //     locations.push(markers[i].position);
+    // }
+    // console.log(locations);
+    
     var locations = [];
-    for(i=0; i<markers.length; i++) {
-        locations.push(markers[i].position);
-    }
+    var points = Object.values(waypoints); 
+    for(i=0; i<points.length; i++) {
+        for(j=0; j<points[i].length; j++) {
+            locations.push(points[i][j]);
+        }
+    }    
 
     var positionalRequest = {
         'locations': locations
@@ -270,7 +288,7 @@ function generateGPX(){
         if (status == google.maps.ElevationStatus.OK) {
             if (results[0]) {
                 for (var i=0; i< results.length; i++) {
-                    xml += "<wpt lat='" + markers[i].position.lat() + "' lon='" + markers[i].position.lng() + "'>";
+                    xml += "<wpt lat='" + results[i].location.lat() + "' lon='" + results[i].location.lng() + "'>";
                     xml += "<ele>" + results[i].elevation.toFixed(2) + "</ele>";
                     xml += "</wpt>";
                 }
@@ -305,29 +323,64 @@ function createManualMarker(){
 }
 
 
-// const createXmlString = (lines: number[][][]): string => {
-//     let result = '<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" version="1.1" creator="runtracker"><metadata/><trk><name></name><desc></desc>'
-//     result += lines.reduce((accum, curr) => {
-//       let segmentTag = '<trkseg>';
-//       segmentTag += curr.map((point) => `<trkpt lat="${point[1]}" lon="${point[0]}"><ele>${point[2]}</ele></trkpt>`).join('');
-//       segmentTag += '</trkseg>'
-  
-//       return accum += segmentTag;
-//     }, '');
-//     result += '</trk></gpx>';
-//     return result;
-//   }
-  
-//   const downloadGpxFile = (
-//     lines: number[][][],
-//     distance: number[],
-//     units: 'miles' | 'kilometers'
-//   ) => {
-//     const xml = createXmlString(lines);
-//     const url = 'data:text/json;charset=utf-8,' + xml;
-//     const link = document.createElement('a');
-//     link.download = `${distance[distance.length - 1]}-${units}.gpx`;
-//     link.href = url;
-//     document.body.appendChild(link);
-//     link.click();
-//   };
+
+
+// https://github.com/webeasystep/draw_route_google_maps
+function displayRoute() {
+    var marketLength = markers.length;
+    if(marketLength > 1) {
+        //for(var i=0; i< marketLength-1; i++) {
+            var i = marketLength-2;
+            var toLat = markers[i].getPosition().lat();
+            var toLng = markers[i].getPosition().lng();
+            var fromLat = markers[i+1].getPosition().lat();
+            var fromLng = markers[i+1].getPosition().lng();
+
+            var code = fromLat + "," + fromLng; 
+            waypoints[code] = [];
+                    
+            var origin = new google.maps.LatLng(toLat, toLng);
+            var destination = new google.maps.LatLng(fromLat, fromLng); 
+
+            var directionsDisplay = new google.maps.DirectionsRenderer({
+                'draggable': false,
+                //'suppressMarkers': true
+            });
+            var directionsService = new google.maps.DirectionsService();
+
+            directionsService.route({
+                origin: origin,
+                destination: destination,
+                travelMode: 'DRIVING',
+                avoidTolls: true
+            }, function (response, status) {
+                if (status === 'OK') {
+                    //directionsDisplay.setMap(map);
+                    //directionsDisplay.setDirections(response);
+                    var pointsArray = [];
+                    pointsArray = response.routes[0].overview_path;
+                    console.log(pointsArray.length);
+                    for(var i=0; i< pointsArray.length; i++) {
+                        var path = poly.getPath();
+                        path.push(pointsArray[i]);
+                        waypoints[code].push(pointsArray[i]);
+                    }
+                } else {
+                    directionsDisplay.setMap(null);
+                    directionsDisplay.setDirections(null);
+                    alert('Could not display directions due to: ' + status);
+                }
+            });
+        //}
+    }    
+}
+
+function removeRoute(location) {
+    var code = location.getPosition().lat() + "," + location.getPosition().lng();
+    if(waypoints[code]){
+        for(var i=0; i< waypoints[code].length; i++) {
+            var path = poly.getPath();
+            path.pop();
+        }
+    }
+}
